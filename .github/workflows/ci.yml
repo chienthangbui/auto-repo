@@ -88,7 +88,11 @@ jobs:
             echo "::error::SonarCloud needs a token. Create one at https://sonarcloud.io (Account -> Security -> Generate Token), then run: gh secret set SONAR_TOKEN --repo ${{ github.repository }}"
             exit 1
           fi
+          if [ -z "$SONAR_ORG" ] || [ -z "$SONAR_PROJECT_KEY" ]; then
+            echo "::error::Set SONAR_ORG and SONAR_PROJECT_KEY repository variables first. See the SonarCloud project import page for these values."
+            exit 1
+          fi
           mvn -B clean verify sonar:sonar \
-            -Dsonar.organization=${{ vars.SONAR_ORG }} \
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+            -Dsonar.organization=$SONAR_ORG \
+            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
             -Dsonar.host.url=${SONAR_HOST_URL:-https://sonarcloud.io}

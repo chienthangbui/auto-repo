@@ -10,7 +10,8 @@ import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.List;
+import java.sql.SQLException;
+import java.util.Map;
 
 /**
  * SECURED version of the demo - shows how to fix the three vulnerabilities
@@ -18,30 +19,37 @@ import java.util.List;
  */
 public class VulnerableDemoServlet extends HttpServlet {
 
-    public ResultSet queryUser(Connection conn, HttpServletRequest req) throws Exception {
+    public ResultSet queryUser(Connection conn, HttpServletRequest req) throws SQLException {
         // FIX 1: SQL Injection -> use parameterized PreparedStatement
+        if (conn == null) {
+            throw new IllegalArgumentException("Database connection is required");
+        }
         String userId = req.getParameter("userId");
         PreparedStatement stmt = conn.prepareStatement(
-                "SELECT * FROM users WHERE id = ?");
+                "SELECT id, username, email FROM users WHERE id = ?");
         stmt.setString(1, userId);
         return stmt.executeQuery();
     }
 
-    // FIX 2: OS Command Injection -> only allow known-safe hosts (allowlist)
-    private static final List<String> ALLOWED_HOSTS = List.of(
-            "localhost", "127.0.0.1", "example.com", "test-host");
+    // FIX 2: OS Command Injection -> user input only selects a fixed, known-safe host
+    private static final Map<String, String> ALLOWED_HOSTS = Map.of(
+            "local", "localhost",
+            "loopback", "127.0.0.1",
+            "example", "example.com",
+            "test", "test-host");
 
-    public void runCommand(HttpServletRequest req) throws Exception {
-        String input = req.getParameter("host");
-        // Allowlist: reject anything not explicitly permitted. Regex is not enough.
-        if (!ALLOWED_HOSTS.contains(input)) {
+    public void runCommand(HttpServletRequest req) throws IOException {
+        String key = req.getParameter("host");
+        // The raw user input is never passed to the command - it only picks a fixed value.
+        String host = ALLOWED_HOSTS.get(key);
+        if (host == null) {
             throw new IllegalArgumentException("Host not allowed");
         }
-        ProcessBuilder pb = new ProcessBuilder("ping", "-c", "1", input);
+        ProcessBuilder pb = new ProcessBuilder("ping", "-c", "1", host);
         pb.start();
     }
 
-    public String readFile(HttpServletRequest req) throws Exception {
+    public String readFile(HttpServletRequest req) throws IOException {
         // FIX 3: Path Traversal -> validate and normalize the path
         String fileName = req.getParameter("file");
         Path baseDir = Paths.get("/data/uploads").toAbsolutePath().normalize();
@@ -59,7 +67,7 @@ public class VulnerableDemoServlet extends HttpServlet {
             queryUser(null, req);
             runCommand(req);
             readFile(req);
-        } catch (Exception e) {
+        } catch (SQLException | IllegalArgumentException e) {
             throw new javax.servlet.ServletException(e);
         }
     }

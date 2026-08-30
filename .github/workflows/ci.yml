@@ -46,5 +46,19 @@ jobs:
           java-version: '17'
           cache: maven
 
+      - name: Cache OWASP dependency-check data
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: dependency-check-data-${{ hashFiles('pom.xml') }}
+
+      - name: Verify NVD API key is configured
+        if: ${{ secrets.NVD_API_KEY == '' }}
+        run: |
+          echo "::error::OWASP Dependency-Check needs a free NVD API key. Register one at https://nvd.nist.gov/developers/request-an-api-key then run: gh secret set NVD_API_KEY --repo ${GITHUB_REPOSITORY}"
+          exit 1
+
       - name: Run OWASP Dependency-Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: mvn -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7

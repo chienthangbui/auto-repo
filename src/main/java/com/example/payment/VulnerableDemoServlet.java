@@ -45,7 +45,7 @@ public class VulnerableDemoServlet extends HttpServlet {
         if (host == null) {
             throw new IllegalArgumentException("Host not allowed");
         }
-        ProcessBuilder pb = new ProcessBuilder("ping", "-c", "1", host);
+        ProcessBuilder pb = new ProcessBuilder("/bin/ping", "-c", "1", host);
         pb.start();
     }
 
@@ -61,14 +61,14 @@ public class VulnerableDemoServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws javax.servlet.ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
         try {
             queryUser(null, req);
             runCommand(req);
             readFile(req);
-        } catch (SQLException | IllegalArgumentException e) {
-            throw new javax.servlet.ServletException(e);
+        } catch (SQLException | IOException | IllegalArgumentException e) {
+            // S1989: do not let exceptions escape the servlet - return a clean error response
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 }

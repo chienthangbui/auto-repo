@@ -60,4 +60,4 @@ jobs:
             echo "::error::OWASP Dependency-Check needs a free NVD API key. Register one at https://nvd.nist.gov/developers/request-an-api-key then run: gh secret set NVD_API_KEY --repo ${{ github.repository }}"
             exit 1
           fi
-          mvn -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7
+          mvn -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7 -DnvdApiKeyEnvironmentVariable=NVD_API_KEY

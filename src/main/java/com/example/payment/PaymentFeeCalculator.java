@@ -5,6 +5,8 @@ import java.math.RoundingMode;
 
 /**
  * Calculates payment processing fees based on the transaction amount.
+ *
+ * <p>Test change: verify SonarCloud GitHub App automatic analysis on PRs.</p>
  */
 public class PaymentFeeCalculator {
 

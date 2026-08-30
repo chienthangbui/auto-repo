@@ -63,3 +63,53 @@ jobs:
             exit 1
           fi
           mvn -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7 -DnvdApiKeyEnvironmentVariable=NVD_API_KEY
+
+  # CI-based SonarCloud analysis (runs tests via JaCoCo so coverage is measured).
+  # Requires automatic analysis to be turned OFF in SonarCloud project settings,
+  # otherwise both the App and this job analyze the same PRs.
+  #
+  # Config is read from repository variables at runtime (see AGENTS.md convention):
+  #   SONAR_ENABLED     (var)  - 'true' to run this job (default: true)
+  #   SONAR_ORG         (var)  - SonarCloud organization key (default: auto-repo)
+  #   SONAR_PROJECT_KEY (var)  - SonarCloud project key (default: chienthangbui_auto-repo)
+  #   SONAR_TOKEN       (secret) - API token (no default; job fails fast if missing)
+  sonar:
+    runs-on: ubuntu-latest
+    if: ${{ vars.SONAR_ENABLED != 'false' }}
+    env:
+      SONAR_ORG: ${{ vars.SONAR_ORG || 'auto-repo' }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'chienthangbui_auto-repo' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history for better relevancy of analysis
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Build, test and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::SonarCloud needs a token. Create one at https://sonarcloud.io (Account -> Security -> Generate Token), then run: gh secret set SONAR_TOKEN --repo ${{ github.repository }}"
+            exit 1
+          fi
+          mvn -B clean verify sonar:sonar \
+            -Dsonar.organization="$SONAR_ORG" \
+            -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+

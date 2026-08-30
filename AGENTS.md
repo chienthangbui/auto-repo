@@ -26,3 +26,14 @@ The CI pipeline runs Gitleaks too (`.github/workflows/ci.yml`), but CI only runs
 
 - Java 17 Maven project (`pom.xml`).
 - Build & test: `mvn -B clean test`.
+
+## CI Configuration Convention (general)
+
+When creating or editing `.github/workflows/*.yml`, follow the global convention
+(also in `~/.copilot/copilot-instructions.md`):
+
+- Variables (non-secret) have defaults baked into the workflow and can be overridden
+  at run time via `gh variable set` — no commit needed to change a value.
+- Secrets never have defaults; fail fast with a clear error if missing.
+- Feature toggles are boolean variables that default to enabled.
+

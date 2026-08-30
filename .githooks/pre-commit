@@ -1,0 +1,19 @@
+#!/bin/sh
+# Pre-commit hook: block commits that contain secrets.
+# Runs Gitleaks against staged changes before the commit is created.
+# If Gitleaks is not installed, it warns and lets the commit proceed.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo ":: warning :: Gitleaks not found. Install it (winget install Gitleaks.Gitleaks) to enable secret scanning."
+  exit 0
+fi
+
+echo "Running Gitleaks secret scan on staged changes..."
+gitleaks protect --staged --verbose
+
+if [ $? -ne 0 ]; then
+  echo "ERROR: Potential secret(s) detected. Fix them or use 'git commit --no-verify' only if you are sure."
+  exit 1
+fi
+
+exit 0

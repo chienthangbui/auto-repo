@@ -27,12 +27,15 @@ public class VulnerableDemoServlet extends HttpServlet {
         return stmt.executeQuery();
     }
 
+    // FIX 2: OS Command Injection -> only allow known-safe hosts (allowlist)
+    private static final List<String> ALLOWED_HOSTS = List.of(
+            "localhost", "127.0.0.1", "example.com", "test-host");
+
     public void runCommand(HttpServletRequest req) throws Exception {
-        // FIX 2: OS Command Injection -> pass args as list, never shell concat
         String input = req.getParameter("host");
-        // Validate input: only allow hostname/IP characters, reject anything else
-        if (!input.matches("[a-zA-Z0-9.-]+")) {
-            throw new IllegalArgumentException("Invalid host");
+        // Allowlist: reject anything not explicitly permitted. Regex is not enough.
+        if (!ALLOWED_HOSTS.contains(input)) {
+            throw new IllegalArgumentException("Host not allowed");
         }
         ProcessBuilder pb = new ProcessBuilder("ping", "-c", "1", input);
         pb.start();

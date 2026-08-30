@@ -54,15 +54,21 @@ class PaymentFeeCalculatorTest {
 
     @Test
     void discountFee_shouldRejectInvalidInputs() {
+        BigDecimal fee = new BigDecimal("100");
+        BigDecimal tenPercent = new BigDecimal("10");
+        BigDecimal negativeFee = new BigDecimal("-1");
+        BigDecimal negativeDiscount = new BigDecimal("-1");
+        BigDecimal overHundredPercent = new BigDecimal("101");
+
         assertThrows(IllegalArgumentException.class,
-                () -> calculator.discountFee(null, new BigDecimal("10")));
+                () -> calculator.discountFee(null, tenPercent));
         assertThrows(IllegalArgumentException.class,
-                () -> calculator.discountFee(new BigDecimal("100"), null));
+                () -> calculator.discountFee(fee, null));
         assertThrows(IllegalArgumentException.class,
-                () -> calculator.discountFee(new BigDecimal("-1"), new BigDecimal("10")));
+                () -> calculator.discountFee(negativeFee, tenPercent));
         assertThrows(IllegalArgumentException.class,
-                () -> calculator.discountFee(new BigDecimal("100"), new BigDecimal("-1")));
+                () -> calculator.discountFee(fee, negativeDiscount));
         assertThrows(IllegalArgumentException.class,
-                () -> calculator.discountFee(new BigDecimal("100"), new BigDecimal("101")));
+                () -> calculator.discountFee(fee, overHundredPercent));
     }
 }

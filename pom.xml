@@ -16,6 +16,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <junit.version>5.10.2</junit.version>
+        <!-- SonarCloud organization key (from the SonarCloud project import page) -->
+        <sonar.organization>auto-repo</sonar.organization>
     </properties>
 
     <dependencies>

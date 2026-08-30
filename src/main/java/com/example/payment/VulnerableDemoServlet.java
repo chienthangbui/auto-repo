@@ -3,42 +3,55 @@ package com.example.payment;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
+import java.util.List;
 
 /**
- * DELIBERATELY VULNERABLE - demo class for testing CodeQL detection.
- * Servlet request parameters are recognized "taint sources" by CodeQL,
- * flowing into unsafe sinks (SQL, OS command, file read).
+ * SECURED version of the demo - shows how to fix the three vulnerabilities
+ * that CodeQL detected in the previous version of this class.
  */
 public class VulnerableDemoServlet extends HttpServlet {
 
     public ResultSet queryUser(Connection conn, HttpServletRequest req) throws Exception {
-        // VULNERABILITY 1: SQL Injection
+        // FIX 1: SQL Injection -> use parameterized PreparedStatement
         String userId = req.getParameter("userId");
-        Statement stmt = conn.createStatement();
-        String sql = "SELECT * FROM users WHERE id = '" + userId + "'";
-        return stmt.executeQuery(sql);
+        PreparedStatement stmt = conn.prepareStatement(
+                "SELECT * FROM users WHERE id = ?");
+        stmt.setString(1, userId);
+        return stmt.executeQuery();
     }
 
     public void runCommand(HttpServletRequest req) throws Exception {
-        // VULNERABILITY 2: OS Command Injection
+        // FIX 2: OS Command Injection -> pass args as list, never shell concat
         String input = req.getParameter("host");
-        String cmd = "ping " + input;
-        Runtime.getRuntime().exec(cmd);
+        // Validate input: only allow hostname/IP characters, reject anything else
+        if (!input.matches("[a-zA-Z0-9.-]+")) {
+            throw new IllegalArgumentException("Invalid host");
+        }
+        ProcessBuilder pb = new ProcessBuilder("ping", "-c", "1", input);
+        pb.start();
     }
 
     public String readFile(HttpServletRequest req) throws Exception {
-        // VULNERABILITY 3: Path Traversal
+        // FIX 3: Path Traversal -> validate and normalize the path
         String fileName = req.getParameter("file");
-        java.nio.file.Path path = java.nio.file.Paths.get("/data/uploads/" + fileName);
-        return new String(java.nio.file.Files.readAllBytes(path));
+        Path baseDir = Paths.get("/data/uploads").toAbsolutePath().normalize();
+        Path path = baseDir.resolve(fileName).normalize();
+        if (!path.startsWith(baseDir)) {
+            throw new IOException("Invalid file path: traversal attempt rejected");
+        }
+        return new String(Files.readAllBytes(path));
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws javax.servlet.ServletException, java.io.IOException {
+            throws javax.servlet.ServletException, IOException {
         try {
             queryUser(null, req);
             runCommand(req);

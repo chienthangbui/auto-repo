@@ -51,6 +51,8 @@ jobs:
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: dependency-check-data-${{ hashFiles('pom.xml') }}
+          restore-keys: |
+            dependency-check-data-
 
       - name: Run OWASP Dependency-Check
         env:

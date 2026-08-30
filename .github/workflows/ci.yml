@@ -67,8 +67,18 @@ jobs:
   # CI-based SonarCloud analysis (runs tests via JaCoCo so coverage is measured).
   # Requires automatic analysis to be turned OFF in SonarCloud project settings,
   # otherwise both the App and this job analyze the same PRs.
+  #
+  # Config is read from repository variables at runtime (see AGENTS.md convention):
+  #   SONAR_ENABLED     (var)  - 'true' to run this job (default: true)
+  #   SONAR_ORG         (var)  - SonarCloud organization key (default: auto-repo)
+  #   SONAR_PROJECT_KEY (var)  - SonarCloud project key (default: chienthangbui_auto-repo)
+  #   SONAR_TOKEN       (secret) - API token (no default; job fails fast if missing)
   sonar:
     runs-on: ubuntu-latest
+    if: ${{ vars.SONAR_ENABLED != 'false' }}
+    env:
+      SONAR_ORG: ${{ vars.SONAR_ORG || 'auto-repo' }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'chienthangbui_auto-repo' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -98,7 +108,8 @@ jobs:
             exit 1
           fi
           mvn -B clean verify sonar:sonar \
-            -Dsonar.projectKey=chienthangbui_auto-repo \
+            -Dsonar.organization="$SONAR_ORG" \
+            -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
 

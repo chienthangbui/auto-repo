@@ -26,3 +26,30 @@ The CI pipeline runs Gitleaks too (`.github/workflows/ci.yml`), but CI only runs
 
 - Java 17 Maven project (`pom.xml`).
 - Build & test: `mvn -B clean test`.
+
+## CI Configuration Convention (general rule for all projects)
+
+Workflows must never hard-code project-specific settings that can change between forks/orgs.
+Instead, read them from **GitHub repository variables** at runtime, with **sensible defaults**
+baked into the workflow, so a fork or a different org works with zero setup.
+
+- **Variables** (non-secret): declare a default inline in the workflow, e.g.
+  `env: SONAR_ORG: ${{ vars.SONAR_ORG || 'auto-repo' }}`.
+  Changing them is a **runtime-only operation** — update with `gh variable set`
+  (no commit needed): `gh variable set SONAR_ORG --repo <owner/repo> --body "my-org"`.
+- **Secrets**: never provide a default or a placeholder value. Use the
+  `${{ secrets.X }}` reference and fail fast with a clear error if it is empty.
+- **Feature on/off switches**: model as a boolean variable, e.g.
+  `SONAR_ENABLED`, defaulting to enabled (`if: ${{ vars.SONAR_ENABLED != 'false' }}`).
+- Do not create a commit just to change a variable value; edit the variable on GitHub instead.
+
+Current variables used by `.github/workflows/ci.yml`:
+
+| Variable          | Kind      | Default                     | Purpose                          |
+| ----------------- | --------- | --------------------------- | -------------------------------- |
+| `SONAR_ENABLED`   | variable  | `true` (enabled)            | Toggle the SonarCloud job        |
+| `SONAR_ORG`       | variable  | `auto-repo`                 | SonarCloud organization key      |
+| `SONAR_PROJECT_KEY` | variable | `chienthangbui_auto-repo` | SonarCloud project key           |
+| `SONAR_TOKEN`     | secret    | none (required)             | SonarCloud API token             |
+| `NVD_API_KEY`     | secret    | none (required)             | NVD API key for OWASP check      |
+
